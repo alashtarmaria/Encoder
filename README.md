@@ -5,7 +5,7 @@
 
 
 
-🎯 Amaç (Şimdi Net):
+#🎯 Amaç:
 Encoder her döndüğünde pozisyon 1 artmalı veya 1 azalmalı ✅
 
 Her artış/azalış anında ekrana yazılmalı ✅
