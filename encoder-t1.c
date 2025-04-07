@@ -3,6 +3,7 @@
 
 int encoder_position = 0;
 char last_direction = 'X';  // Baslangiçta bilinmiyor
+char buffer[50];
 
 // === UART3 Baslat ===
 void UART3_Init_Config(unsigned long baudrate) {
@@ -31,13 +32,11 @@ unsigned int Read_ADC_Channel(unsigned char channel) {
     return ADC1BUF0;
 }
 
-// === ENCODER OKUMA ===
-// Phase A = AN17 (Channel 17)
-// Phase B = AN16 (Channel 16)
-// Yazilimda takas yapiyoruz
+
 void Encoder_Read() {
     static unsigned char prev_state = 0;
 
+    // A ve B'yi takasliyoruz (çünkü yön ters oluyordu)
     unsigned int adc_B = Read_ADC_Channel(16); // AN16 = Phase B
     unsigned int adc_A = Read_ADC_Channel(17); // AN17 = Phase A
 
@@ -45,38 +44,31 @@ void Encoder_Read() {
     unsigned char B = (adc_B > THRESHOLD) ? 1 : 0;
 
     unsigned char current_state = (A << 1) | B;
-    char new_direction = last_direction;
 
+    // CW
     if ((prev_state == 0 && current_state == 1) ||
         (prev_state == 1 && current_state == 3) ||
         (prev_state == 3 && current_state == 2) ||
         (prev_state == 2 && current_state == 0)) {
         encoder_position++;
-        new_direction = 'R';
+
+        sprintf(buffer, "POS: %d, DIR: R\r\n", encoder_position);
+        UART3_Write_Text(buffer);
     }
+    // CCW
     else if ((prev_state == 0 && current_state == 2) ||
              (prev_state == 2 && current_state == 3) ||
              (prev_state == 3 && current_state == 1) ||
              (prev_state == 1 && current_state == 0)) {
         encoder_position--;
-        new_direction = 'L';
+
+        sprintf(buffer, "POS: %d, DIR: L\r\n", encoder_position);
+        UART3_Write_Text(buffer);
     }
 
     prev_state = current_state;
-
-    // S yönü tamamen yok, sadece R veya L yazdirilir
-    if (new_direction != last_direction) {
-        last_direction = new_direction;
-
-        if (new_direction == 'R' || new_direction == 'L') {
-            char buffer[50];
-            sprintf(buffer, "POS: %d, DIR: %c\r\n", encoder_position, last_direction);
-            UART3_Write_Text(buffer);
-        }
-    }
 }
 
-// === ANA PROGRAM ===
 void main() {
     PLLFBD = 70;     // Frekans ayari
     CLKDIV = 0x0000;
@@ -91,3 +83,4 @@ void main() {
         Delay_ms(10); // Istersen daha hizli/az yapabilirsin
     }
 }
+
